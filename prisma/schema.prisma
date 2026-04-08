@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TeamRole {
+  STRATEGY
+  INFRA
+  GTM
+  TOOLING
+  VIEWER
+}
+
+enum BillingPlan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum SubscriptionStatus {
+  NONE
+  PENDING
+  ACTIVE
+  CANCELED
+  PAST_DUE
+}
+
+enum AgentPlatform {
+  SLACK
+  DISCORD
+  CLOUD
+}
+
+enum AgentStatus {
+  QUEUED
+  PROVISIONING
+  RUNNING
+  FAILED
+  STOPPED
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  TOOL
+  SYSTEM
+}
+
+enum SkillScope {
+  GLOBAL
+  PROJECT
+}
+
+enum MemoryKind {
+  NOTE
+  FACT
+  DECISION
+  SUMMARY
+  KNOWLEDGE
+}
+
+enum TaskStatus {
+  ACTIVE
+  PAUSED
+  FAILED
+}
+
+enum VoiceProvider {
+  BROWSER
+  AWS
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  role          TeamRole  @default(VIEWER)
+  accounts      Account[]
+  sessions      Session[]
+  ventures      Venture[]
+  subscription  Subscription?
+  agents        Agent[]
+  usageEvents   AgentUsageEvent[]
+  chatMessages  AgentChatMessage[]
+  chatSessions  AgentChatSession[]
+  projects      Project[]
+  skills        Skill[]
+  memories      MemoryEntry[]
+  scheduledTasks ScheduledTask[]
+  a2aConnections A2AConnection[]
+  voiceProfiles VoiceProfile[]
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Venture {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  type      String
+  status    String   @default("draft")
+  config    Json?
+  createdBy String   @map("created_by") @db.Uuid
+  user      User     @relation(fields: [createdBy], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ventures")
+}
+
+model Subscription {
+  id                      String             @id @default(uuid()) @db.Uuid
+  userId                  String             @unique @map("user_id") @db.Uuid
+  plan                    BillingPlan        @default(FREE)
+  status                  SubscriptionStatus @default(NONE)
+  stripeCustomerId        String?            @map("stripe_customer_id")
+  stripeCheckoutSessionId String?            @map("stripe_checkout_session_id")
+  currentPeriodEnd        DateTime?          @map("current_period_end")
+  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+model Agent {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  projectId     String?       @map("project_id") @db.Uuid
+  parentAgentId String?       @map("parent_agent_id") @db.Uuid
+  name          String
+  platform      AgentPlatform
+  instructions  String?       @db.Text
+  inputConfig   Json?         @map("input_config")
+  status        AgentStatus   @default(QUEUED)
+  ecsClusterArn String?       @map("ecs_cluster_arn")
+  ecsServiceArn String?       @map("ecs_service_arn")
+  ecsTaskArn    String?       @map("ecs_task_arn")
+  efsAccessPointId String?   @map("efs_access_point_id")
+  cloudChatEndpoint String?   @map("cloud_chat_endpoint")
+  mcpEndpoint   String?       @map("mcp_endpoint")
+  modelName     String?       @map("model_name")
+  lastError     String?       @map("last_error") @db.Text
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentAgent   Agent?        @relation("AgentDelegation", fields: [parentAgentId], references: [id], onDelete: SetNull)
+  childAgents   Agent[]       @relation("AgentDelegation")
+  usageEvents   AgentUsageEvent[]
+  chatMessages  AgentChatMessage[]
+  chatSessions  AgentChatSession[]
+  memories      MemoryEntry[]
+  scheduledTasks ScheduledTask[]
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([parentAgentId, createdAt])
+  @@map("agents")
+}
+
+model AgentChatSession {
+  id            String             @id @default(uuid()) @db.Uuid
+  agentId       String             @map("agent_id") @db.Uuid
+  userId        String             @map("user_id") @db.Uuid
+  title         String             @default("New chat")
+  lastMessageAt DateTime           @default(now()) @map("last_message_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  agent         Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      AgentChatMessage[]
+
+  @@index([agentId, userId, lastMessageAt])
+  @@map("agent_chat_sessions")
+}
+
+model AgentUsageEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  agentId      String   @map("agent_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  model        String
+  inputTokens  Int      @default(0) @map("input_tokens")
+  outputTokens Int      @default(0) @map("output_tokens")
+  totalTokens  Int      @default(0) @map("total_tokens")
+  latencyMs    Int      @default(0) @map("latency_ms")
+  toolCalls    Json?    @map("tool_calls")
+  metadata     Json?    @map("metadata")
+  createdAt    DateTime @default(now()) @map("created_at")
+  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+  @@index([userId, createdAt])
+  @@map("agent_usage_events")
+}
+
+model AgentChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  agentId   String   @map("agent_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  sessionId String?  @map("session_id") @db.Uuid
+  role      ChatRole
+  content   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   AgentChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, createdAt])
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@map("agent_chat_messages")
+}
+
+model Project {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  name            String
+  slug            String
+  description     String?   @db.Text
+  instructions    String?   @db.Text
+  workspaceRoot   String?   @map("workspace_root")
+  memoryIsolation Boolean   @default(true) @map("memory_isolation")
+  isArchived      Boolean   @default(false) @map("is_archived")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agents          Agent[]
+  skills          Skill[]
+  memories        MemoryEntry[]
+  scheduledTasks  ScheduledTask[]
+  a2aConnections  A2AConnection[]
+  voiceProfiles   VoiceProfile[]
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, slug])
+  @@index([userId, createdAt])
+  @@map("projects")
+}
+
+model Skill {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  projectId   String?    @map("project_id") @db.Uuid
+  scope       SkillScope @default(GLOBAL)
+  name        String
+  slug        String
+  description String?    @db.Text
+  content     String     @db.Text
+  tags        Json?
+  isActive    Boolean    @default(true) @map("is_active")
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([userId, scope, createdAt])
+  @@index([projectId, createdAt])
+  @@map("skills")
+}
+
+model MemoryEntry {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  projectId String?     @map("project_id") @db.Uuid
+  agentId   String?     @map("agent_id") @db.Uuid
+  kind      MemoryKind  @default(NOTE)
+  title     String?
+  content   String      @db.Text
+  metadata  Json?
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent     Agent?      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([agentId, createdAt])
+  @@map("memory_entries")
+}
+
+model ScheduledTask {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  projectId   String?    @map("project_id") @db.Uuid
+  agentId     String?    @map("agent_id") @db.Uuid
+  title       String
+  instruction String     @db.Text
+  cronExpr    String     @map("cron_expr")
+  timezone    String     @default("UTC")
+  status      TaskStatus @default(ACTIVE)
+  enabled     Boolean    @default(true)
+  nextRunAt   DateTime?  @map("next_run_at")
+  lastRunAt   DateTime?  @map("last_run_at")
+  lastError   String?    @map("last_error") @db.Text
+  metadata    Json?
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent       Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([userId, status, createdAt])
+  @@index([projectId, createdAt])
+  @@index([agentId, createdAt])
+  @@map("scheduled_tasks")
+}
+
+model A2AConnection {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  projectId    String?  @map("project_id") @db.Uuid
+  name         String
+  endpointUrl  String   @map("endpoint_url")
+  sharedSecret String?  @map("shared_secret")
+  enabled      Boolean  @default(true)
+  metadata     Json?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@map("a2a_connections")
+}
+
+model VoiceProfile {
+  id         String        @id @default(uuid()) @db.Uuid
+  userId     String        @map("user_id") @db.Uuid
+  projectId  String?       @map("project_id") @db.Uuid
+  provider   VoiceProvider @default(BROWSER)
+  voiceName  String?       @map("voice_name")
+  sttEnabled Boolean       @default(true) @map("stt_enabled")
+  ttsEnabled Boolean       @default(true) @map("tts_enabled")
+  metadata   Json?
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  @@unique([userId, projectId])
+  @@index([userId, createdAt])
+  @@map("voice_profiles")
+}

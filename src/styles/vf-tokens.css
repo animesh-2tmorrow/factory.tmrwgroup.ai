@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+:root {
+  /* Consensus-style dark palette */
+  --bg-deep: #090a0c;
+  --bg-base: #0a0c0f;
+  --bg-card: #101318;
+  --bg-elevated: #151a20;
+
+  /* Borders */
+  --border: #232a31;
+  --border-active: #313a45;
+
+  /* Text */
+  --text-primary: #e6e8eb;
+  --text-secondary: #abb2bc;
+  --text-muted: #7d8692;
+
+  /* Accent palette */
+  --teal: #86b8a8;
+  --teal-dim: rgba(134, 184, 168, 0.1);
+  --orange: #d6a261;
+  --orange-dim: rgba(214, 162, 97, 0.12);
+  --blue: #8aa9cf;
+  --blue-dim: rgba(138, 169, 207, 0.12);
+  --pink: #c897b6;
+  --pink-dim: rgba(200, 151, 182, 0.12);
+  --gold: #c2ab74;
+  --gold-dim: rgba(194, 171, 116, 0.12);
+  --lime: #9db784;
+  --lime-dim: rgba(157, 183, 132, 0.12);
+
+  /* Semantic */
+  --success: #8db39b;
+  --warning: #c9a36a;
+  --error: #d87272;
+  --info: #88a9d0;
+
+  /* Typography sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.563rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+  --text-4xl: 3.052rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-9: 4rem;
+  --space-10: 5rem;
+
+  /* Radius */
+  --vf-radius-xs: 4px;
+  --vf-radius-sm: 6px;
+  --vf-radius-md: 8px;
+  --vf-radius-lg: 10px;
+  --vf-radius-xl: 16px;
+
+  /* Shadows */
+  --vf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --vf-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --vf-shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.28);
+  --vf-shadow-glow-teal: 0 0 0 rgba(0, 0, 0, 0);
+
+  /* Glass / glow effects */
+  --glass-bg: rgba(17, 17, 17, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-blur: 12px;
+  --glow-teal: 0 0 16px rgba(143, 196, 178, 0.1);
+  --glow-blue: 0 0 16px rgba(138, 169, 207, 0.1);
+  --glow-gold: 0 0 16px rgba(194, 171, 116, 0.1);
+  --glow-orange: 0 0 16px rgba(214, 162, 97, 0.1);
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+}
+
+@theme inline {
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-base: var(--bg-base);
+  --color-bg-card: var(--bg-card);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-border: var(--border);
+  --color-border-active: var(--border-active);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-teal: var(--teal);
+  --color-teal-dim: var(--teal-dim);
+  --color-accent-orange: var(--orange);
+  --color-accent-blue: var(--blue);
+  --color-accent-pink: var(--pink);
+  --color-accent-gold: var(--gold);
+  --color-accent-lime: var(--lime);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+  --radius-xs: var(--vf-radius-xs);
+  --radius-sm: var(--vf-radius-sm);
+  --radius-md: var(--vf-radius-md);
+  --radius-lg: var(--vf-radius-lg);
+  --radius-xl: var(--vf-radius-xl);
+  --shadow-sm: var(--vf-shadow-sm);
+  --shadow-md: var(--vf-shadow-md);
+  --shadow-lg: var(--vf-shadow-lg);
+}
