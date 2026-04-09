@@ -1,0 +1,66 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  pre_build:
+    commands:
+      - set -euo pipefail
+      - echo "Resolving AWS account and ECR URI..."
+      - ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}"
+      - ECR_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+      - echo "Logging in to ECR ${ECR_URI}"
+      - aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+  build:
+    commands:
+      - set -euo pipefail
+      - echo "Building Docker image..."
+      - docker build -t "${ECR_URI}:${IMAGE_TAG}" -t "${ECR_URI}:latest" .
+  post_build:
+    commands:
+      - set -euo pipefail
+      - echo "Pushing Docker images..."
+      - docker push "${ECR_URI}:${IMAGE_TAG}"
+      - docker push "${ECR_URI}:latest"
+      - IMAGE_URI="${ECR_URI}:${IMAGE_TAG}"
+      - echo "IMAGE_URI=${IMAGE_URI}"
+      - printf '{"imageUri":"%s"}\n' "${IMAGE_URI}" > imageDetail.json
+      - aws ecs describe-task-definition --task-definition "${TASK_FAMILY}" --query taskDefinition --output json > taskdef-source.json
+      - |
+        python - <<'PY'
+        import json, os
+        src = json.load(open("taskdef-source.json", "r", encoding="utf-8"))
+        image = os.environ["IMAGE_URI"]
+        container_name = os.environ["CONTAINER_NAME"]
+
+        for c in src.get("containerDefinitions", []):
+            if c.get("name") == container_name:
+                c["image"] = image
+                break
+        else:
+            raise SystemExit(f"Container '{container_name}' not found in task definition")
+
+        for k in [
+            "taskDefinitionArn",
+            "revision",
+            "status",
+            "requiresAttributes",
+            "compatibilities",
+            "registeredAt",
+            "registeredBy",
+            "deregisteredAt",
+            "inferenceAccelerators"
+        ]:
+            src.pop(k, None)
+
+        json.dump(src, open("taskdef.json", "w", encoding="utf-8"), indent=2)
+        PY
+      - cp codedeploy/appspec.yaml appspec.yaml
+
+artifacts:
+  files:
+    - appspec.yaml
+    - taskdef.json
+    - imageDetail.json
