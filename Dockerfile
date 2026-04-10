@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS base
+FROM public.ecr.aws/docker/library/node:20-bookworm-slim AS base
 
 WORKDIR /app
 
