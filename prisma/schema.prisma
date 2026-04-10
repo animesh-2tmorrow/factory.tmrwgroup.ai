@@ -81,10 +81,21 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
   role          TeamRole  @default(VIEWER)
+  passwordHash  String?   @map("password_hash")
+  stripeCustomerId String? @map("stripe_customer_id")
+  stripeSubscriptionId String? @map("stripe_subscription_id")
+  planId        String    @default("free_trial") @map("plan_id")
+  planStatus    String    @default("trialing") @map("plan_status")
+  trialEndsAt   DateTime? @map("trial_ends_at")
+  quotaMonthlyTokens Int  @default(50000) @map("quota_monthly_tokens")
+  bedrockAgentId String?  @map("bedrock_agent_id")
+  lastSeenAt    DateTime? @map("last_seen_at")
   accounts      Account[]
   sessions      Session[]
   ventures      Venture[]
   subscription  Subscription?
+  refreshTokens RefreshToken[]
+  monthlyQuotas MonthlyQuota[]
   agents        Agent[]
   usageEvents   AgentUsageEvent[]
   chatMessages  AgentChatMessage[]
@@ -136,6 +147,40 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  tokenPrefix String  @map("token_prefix")
+  expiresAt  DateTime @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  userAgent  String?  @map("user_agent")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenPrefix])
+  @@map("refresh_tokens")
+}
+
+model MonthlyQuota {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  periodStart         DateTime @map("period_start") @db.Date
+  periodEnd           DateTime @map("period_end") @db.Date
+  tokensIncluded      Int      @map("tokens_included")
+  tokensUsed          Int      @default(0) @map("tokens_used")
+  overageTokens       Int      @default(0) @map("overage_tokens")
+  overageChargedCents Int      @default(0) @map("overage_charged_cents")
+  createdAt           DateTime @default(now()) @map("created_at")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodStart])
+  @@index([userId, periodStart])
+  @@map("monthly_quota")
 }
 
 model Venture {

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
-import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { runCloudAgentTurn } from "@/lib/cloud-agent-chat";
 import { proxyToRunner, type RunnerChatResult } from "@/lib/runner-proxy";
 import { discoverRunnerEndpoint } from "@/lib/agent-provisioning";
+import { authenticateRequest } from "@/lib/request-auth";
 
 const MAX_RECENT_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_CHARS = 900;
@@ -621,13 +621,11 @@ function toChatRouteError(error: unknown): ChatRouteError {
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-
-  const userId = session?.user?.id;
-
-  if (!userId) {
+  const authContext = await authenticateRequest(request);
+  if (!authContext?.userId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
+  const userId = authContext.userId;
 
   const { id } = await context.params;
   let payload: Record<string, unknown>;

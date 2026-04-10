@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { authenticateRequest } from "@/lib/request-auth";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
+  const authContext = await authenticateRequest(request);
+  if (!authContext?.userId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
+  const userId = authContext.userId;
 
   const { id: agentId } = await context.params;
   const searchParams = new URL(request.url).searchParams;
@@ -21,7 +21,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     where: {
       id: sessionId,
       agentId,
-      userId: session.user.id,
+      userId,
     },
     select: { id: true },
   });
@@ -34,7 +34,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     where: {
       sessionId,
       agentId,
-      userId: session.user.id,
+      userId,
       role: {
         in: ["USER", "ASSISTANT"],
       },

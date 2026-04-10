@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { authenticateRequest } from "@/lib/request-auth";
 
-export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const authContext = await authenticateRequest(request);
+  if (!authContext?.userId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
+  const userId = authContext.userId;
 
   const { id: agentId } = await context.params;
 
   const agent = await prisma.agent.findFirst({
     where: {
       id: agentId,
-      userId: session.user.id,
+      userId,
     },
     select: { id: true },
   });
@@ -26,7 +26,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
   const sessions = await prisma.agentChatSession.findMany({
     where: {
       agentId,
-      userId: session.user.id,
+      userId,
     },
     orderBy: {
       lastMessageAt: "desc",
@@ -61,11 +61,11 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
+  const authContext = await authenticateRequest(request);
+  if (!authContext?.userId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
+  const userId = authContext.userId;
 
   const { id: agentId } = await context.params;
   const payload = await request.json().catch(() => ({} as Record<string, unknown>));
@@ -75,7 +75,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const agent = await prisma.agent.findFirst({
     where: {
       id: agentId,
-      userId: session.user.id,
+      userId,
     },
     select: { id: true },
   });
@@ -87,7 +87,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const chatSession = await prisma.agentChatSession.create({
     data: {
       agentId,
-      userId: session.user.id,
+      userId,
       title,
       lastMessageAt: new Date(),
     },
