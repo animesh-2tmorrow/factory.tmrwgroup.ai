@@ -42,6 +42,10 @@ phases:
         else:
             raise SystemExit(f"Container '{container_name}' not found in task definition")
 
+        # Enforce desired Fargate task size from Git-managed pipeline config.
+        src["cpu"] = "4096"
+        src["memory"] = "16384"
+
         for k in [
             "taskDefinitionArn",
             "revision",
