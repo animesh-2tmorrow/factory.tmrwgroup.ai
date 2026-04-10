@@ -65,6 +65,12 @@ interface EcsEfsConfig {
 
 const taskDefinitionCache = new Map<string, string>();
 
+function isProvisioningDisabled(): boolean {
+  const explicitDisable = (process.env.DISABLE_ECS_PROVISIONING ?? "").toLowerCase() === "true";
+  const localEnv = (process.env.APP_ENV ?? "").toLowerCase() === "local";
+  return explicitDisable || localEnv;
+}
+
 function parseRuntimeInputConfig(inputConfig: unknown): RuntimeInputConfig {
   if (!inputConfig || typeof inputConfig !== "object" || Array.isArray(inputConfig)) {
     return {};
@@ -415,6 +421,13 @@ async function resolveCloudTaskDefinitionArn(
 export async function provisionAgentOnEcs(
   agent: Pick<Agent, "id" | "userId" | "name" | "platform" | "instructions" | "inputConfig">
 ): Promise<ProvisionResult> {
+  if (isProvisioningDisabled()) {
+    return {
+      started: false,
+      reason: "ECS provisioning disabled for local/test environment",
+    };
+  }
+
   const { clusterArn, taskDefinitionArn, cloudTaskDefinitionArn, subnets, securityGroups } = requiredEnv();
 
   if (!clusterArn || !taskDefinitionArn || subnets.length === 0 || securityGroups.length === 0) {

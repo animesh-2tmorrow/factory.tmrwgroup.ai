@@ -26,21 +26,17 @@ services:
     environment:
       DATABASE_URL: postgresql://tmrwadmin:localpass@db:5432/tmrwgroup_local?schema=venture_factory
       APP_ENV: local
+      DISABLE_ECS_PROVISIONING: "true"
       NEXTAUTH_URL: http://localhost:3000
       APP_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       AWS_REGION: us-east-1
-      AWS_PROFILE: default
-      AWS_SDK_LOAD_CONFIG: "1"
-      AWS_SHARED_CREDENTIALS_FILE: /root/.aws/credentials
-      AWS_CONFIG_FILE: /root/.aws/config
+      AWS_EC2_METADATA_DISABLED: "true"
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "3000:3000"
-    volumes:
-      - "C:/Users/Acer/.aws:/root/.aws:ro"
 
 volumes:
   factory_pg_data:
