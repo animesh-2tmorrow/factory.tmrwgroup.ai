@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       email: true,
       name: true,
       passwordHash: true,
+      emailVerified: true,
       planId: true,
       planStatus: true,
     },
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
   const validPassword = await verifyPassword(parsed.data.password, user.passwordHash);
   if (!validPassword) {
     return NextResponse.json({ success: false, error: "Invalid email or password" }, { status: 401 });
+  }
+
+  const requireVerifiedEmail = process.env.AUTH_REQUIRE_EMAIL_VERIFIED !== "false";
+  if (requireVerifiedEmail && !user.emailVerified) {
+    return NextResponse.json(
+      { success: false, error: "Please verify your email before signing in" },
+      { status: 403 }
+    );
   }
 
   const tokens = await issueTokenPair(user, request.headers.get("user-agent"));

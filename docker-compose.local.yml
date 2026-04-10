@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: factory-local-db
+    environment:
+      POSTGRES_USER: tmrwadmin
+      POSTGRES_PASSWORD: localpass
+      POSTGRES_DB: tmrwgroup_local
+    ports:
+      - "5433:5432"
+    volumes:
+      - factory_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tmrwadmin -d tmrwgroup_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: factory-local-app
+    env_file:
+      - .env.local.docker
+    environment:
+      DATABASE_URL: postgresql://tmrwadmin:localpass@db:5432/tmrwgroup_local?schema=venture_factory
+      APP_ENV: local
+      NEXTAUTH_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      AWS_REGION: us-east-1
+      AWS_PROFILE: default
+      AWS_SDK_LOAD_CONFIG: "1"
+      AWS_SHARED_CREDENTIALS_FILE: /root/.aws/credentials
+      AWS_CONFIG_FILE: /root/.aws/config
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      - "C:/Users/Acer/.aws:/root/.aws:ro"
+
+volumes:
+  factory_pg_data:

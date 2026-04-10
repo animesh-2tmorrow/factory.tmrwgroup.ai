@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/db";
 import { provisionAgentOnEcs } from "@/lib/agent-provisioning";
 import { currentQuotaPeriod, hashPassword } from "@/lib/jwt-auth";
+import { getAppUrl, issueEmailVerificationToken, notifyAuthLink } from "@/lib/auth-links";
 
 const FREE_TRIAL_DAYS = 7;
 const FREE_TRIAL_TOKENS = 50_000;
@@ -187,12 +188,29 @@ export async function POST(request: Request) {
         },
   });
 
+  const verificationToken = await issueEmailVerificationToken(created.user.id);
+  const verificationUrl = `${getAppUrl()}/api/auth/verify-email/${encodeURIComponent(verificationToken)}`;
+
+  if (created.user.email) {
+    notifyAuthLink("verify", created.user.email, verificationUrl).catch((error) => {
+      console.warn(
+        `[auth/register] Failed to publish verification link for ${created.user.email}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    });
+  }
+
+  const includeVerificationUrl =
+    process.env.AUTH_RETURN_LINKS === "true" || process.env.NODE_ENV !== "production";
+
   return NextResponse.json(
     {
       success: true,
       userId: created.user.id,
       email: created.user.email,
       verificationSent: true,
+      ...(includeVerificationUrl ? { verificationUrl } : {}),
     },
     { status: 201 }
   );

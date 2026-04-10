@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const DEFAULT_AUTH_REDIRECT = "/billing";
-const PUBLIC_EXACT_PATHS = new Set(["/", "/login"]);
+const PUBLIC_EXACT_PATHS = new Set([
+  "/",
+  "/login",
+  "/auth/extension-connect",
+  "/auth/verify-error",
+  "/forgot-password",
+  "/reset-password",
+]);
 const PUBLIC_PATH_PREFIXES = [
   "/collective",
   "/district",
@@ -16,6 +23,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/district",
   "/api/mcp",
   "/api/agents", // Extension requests handled with CORS
+  "/api/user/agent", // Extension bearer auth endpoint
+  "/api/extension/register", // Extension bearer auth endpoint
 ];
 
 // Allow Chrome extension origins for CORS
@@ -34,9 +43,17 @@ function isAllowedOrigin(origin: string | null): boolean {
   return false;
 }
 
-function handleCorsForAgentsApi(req: NextRequest): NextResponse | null {
+function isExtensionApiPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/api/agents/") ||
+    pathname === "/api/user/agent" ||
+    pathname === "/api/extension/register"
+  );
+}
+
+function handleCorsForExtensionApi(req: NextRequest): NextResponse | null {
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith("/api/agents/")) return null;
+  if (!isExtensionApiPath(pathname)) return null;
 
   const origin = req.headers.get("origin");
   const isPreflight = req.method === "OPTIONS";
@@ -75,8 +92,8 @@ function isPublicPath(pathname: string): boolean {
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Handle CORS preflight for /api/agents/*
-  const corsResponse = handleCorsForAgentsApi(req);
+  // Handle CORS preflight for extension API routes.
+  const corsResponse = handleCorsForExtensionApi(req);
   if (corsResponse) return corsResponse;
 
   const origin = req.headers.get("origin");
@@ -115,7 +132,7 @@ export function proxy(req: NextRequest) {
   });
 
   // Add CORS headers for API requests from extensions
-  if (pathname.startsWith("/api/agents/") && isAllowedOrigin(origin)) {
+  if (isExtensionApiPath(pathname) && isAllowedOrigin(origin)) {
     response.headers.set("Access-Control-Allow-Origin", origin!);
     response.headers.set("Access-Control-Allow-Credentials", "true");
   }
