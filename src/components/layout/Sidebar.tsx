@@ -61,9 +61,6 @@ export default function Sidebar() {
         <a href="/" style={{ fontWeight: 700, fontSize: "var(--text-md)", color: "var(--teal)", textDecoration: "none" }}>
           Venture Factory
         </a>
-        <a href="https://tmrwgroup.ai/" target="_blank" rel="noopener noreferrer" className="vf-kicker" style={{ marginTop: 2, textDecoration: "none", color: "inherit" }}>
-          TMRW Group
-        </a>
       </div>
 
       {/* Nav */}
