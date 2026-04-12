@@ -378,19 +378,17 @@ export default async function BlogPostPage({
               "1px solid var(--border-active, rgba(255,255,255,0.12))",
             background: "#000",
             marginBottom: "32px",
-            aspectRatio: "16/9",
           }}
         >
-          {/* TODO: Replace VIDEO_ID_HERE with actual YouTube video ID */}
-          <iframe
-            src="https://www.youtube.com/embed/VIDEO_ID_HERE"
-            title="Why Frontier AI Just Made Cybersecurity the Biggest Opportunity of 2026"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+          <video
+            src="https://tmrw-factory-media.s3.amazonaws.com/videos/cybersecurity-opportunity-2026.mp4"
+            controls
+            playsInline
+            preload="metadata"
+            poster=""
             style={{
               width: "100%",
-              height: "100%",
-              border: "none",
+              display: "block",
             }}
           />
         </div>
