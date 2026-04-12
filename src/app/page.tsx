@@ -22,6 +22,7 @@ const NAV_LINKS = [
   { label: "Webster", href: "/webster", openInNewTab: false },
   { label: "District", href: "/district", openInNewTab: true },
   { label: "Collective", href: "/collective", openInNewTab: true },
+  { label: "Cybersecurity", href: "/cybersecurity", openInNewTab: false },
   { label: "Watch", href: "/watch", openInNewTab: true },
   { label: "Docs", href: "/docs", openInNewTab: false },
 ];

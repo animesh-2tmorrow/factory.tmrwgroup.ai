@@ -15,6 +15,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/district",
   "/watch",
   "/webster", // Webster product page
+  "/cybersecurity", // Public research blog
   "/download", // Extension download page
   "/downloads", // Static download files
   "/api/downloads", // Download API with Content-Disposition
