@@ -29,4 +29,9 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Validate Prisma schema
+        env:
+          # Prisma validate resolves env() references in the schema. It
+          # doesn't connect to the database — this value just needs to be
+          # a syntactically valid connection string.
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
         run: npx prisma validate
